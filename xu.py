@@ -126,3 +126,35 @@ def mmean(D, meanaxis=0, keepdims=False):
 def bias(Df,Do,axis=0):
     return mmean(Df,axis)-mmean(Do,axis)
 
+
+# checked file: xu.py
+# from xu import lat_lon_ticklabels
+
+# xu function set: {'lat_lon_ticklabels'}
+
+import numpy as np
+import matplotlib.pyplot as plt
+def lat_lon_ticklabels(ax,
+                       zero_direction_label=False,
+                       dateline_direction_label=False,
+                       labelsize='small'):
+    """
+    Utility function to make plots look like NCL plots by using latitude, longitude tick labels
+    Args:
+        ax (:class:`matplotlib.axes._subplots.AxesSubplot` or :class:`cartopy.mpl.geoaxes.GeoAxesSubplot`):
+            Current axes to the current figure
+        zero_direction_label (:class:`bool`):
+            Set True to get 0 E / O W or False to get 0 only.
+        dateline_direction_label (:class:`bool`):
+            Set True to get 180 E / 180 W or False to get 180 only.
+    """
+    from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
+
+    lon_formatter = LongitudeFormatter(
+        zero_direction_label=zero_direction_label,
+        dateline_direction_label=dateline_direction_label)
+    lat_formatter = LatitudeFormatter()
+    ax.xaxis.set_major_formatter(lon_formatter)
+    ax.yaxis.set_major_formatter(lat_formatter)
+    ax.tick_params(labelsize=labelsize)
+
