@@ -39,11 +39,24 @@ dsf1=Ds(f1)
 #dsf1=dsf1.set_coords('issue_date')
 #dso1=dso1.set_coords('issue_date')
 
+
+import cartopy.crs as ccrs
+
+p=dsf1.max_heat_index_2m.isel(time=0,ensemble=0,fcst_date=0).T.plot(subplot_kws=dict(projection=ccrs.PlateCarree()))
+p.axes.coastlines()
+
+
+
 lat=dsf1.latitude.values
 lon=dsf1.longitude.values
 
 to=dso1.issue_date.values.astype('i4')
 tf=dsf1.issue_date.values.astype('i4')
+
+
+
+
+
 
 
 f=dsf1.max_heat_index_2m.values
@@ -165,14 +178,20 @@ def get_mask():
     np.save('mask.npy',mask)
 
 
-def num2date(n):
+def num2date(n) -> str :
     from datetime import datetime
     from datetime import timedelta
     start=datetime.strptime('00010101','%Y%m%d')
-    date=start+timedelta(days=n)
+    date=start+timedelta(days=n-367)  # to 0000 year jan 0
     return date.strftime('%d%h%Y')
 
 
+def date2num(yyyymmdd='20210101') -> int:
+    from datetime import datetime
+    from datetime import timedelta
+    end=datetime.strptime(yyyymmdd,'%Y%m%d')
+    start=datetime.strptime('00010101','%Y%m%d')
+    return (end-start).days+367   # from 0000 jan 0
 
 
 def bias():
