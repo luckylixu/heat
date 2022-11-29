@@ -36,25 +36,24 @@ o1='/cpc/home/evan.oswald/R1_SEHOS/CDAS_1x1_reanalysis_HeatIndex.nc'
 dso1=Ds(o1)
 dsf1=Ds(f1)
 
+
+# %%
 #dsf1=dsf1.set_coords('issue_date')
 #dso1=dso1.set_coords('issue_date')
 
 
-import cartopy.crs as ccrs
+# import cartopy.crs as ccrs
 
-p=dsf1.max_heat_index_2m.isel(time=0,ensemble=0,fcst_date=0).T.plot(subplot_kws=dict(projection=ccrs.PlateCarree()))
-p.axes.coastlines()
+# p=dsf1.max_heat_index_2m.isel(time=0,ensemble=0,fcst_date=0).T.plot(subplot_kws=dict(projection=ccrs.PlateCarree()))
+# p.axes.coastlines()
 
 
 
 lat=dsf1.latitude.values
-lon=dsf1.longitude.values
+lon=dsf1.longitude.values+0.5 # slight shift right half degree
 
 to=dso1.issue_date.values.astype('i4')
 tf=dsf1.issue_date.values.astype('i4')
-
-
-
 
 
 
@@ -66,42 +65,11 @@ o=dso1.max_heat_index_2m.values
 o=np.flip(o,axis=1) # to make latitude from low to high, the same as fcst
 
 
-
-tfn=tf+7 #day8
-
-select=np.in1d(to,tfn) # to get same issue_date at observation with forecast
-o8=o[:,:,select]
-
-bias8=bias(f[:,:,0,:],o8,axis=2)
-rmse8=rmse(f[:,:,0,:],o8,axis=2)
-
-fc=f[:,:,0,:]-bias8[:,:,np.newaxis]
-
-rmse8_fc=rmse(fc,o8,axis=2)
-
-
-lev=[-5,-4,-3,-2,-1,1,2,3,4,5]
-
-cf(lon,lat,bias8.T,lev,extend='both',title='bias for day8 \n',l='heat index',r='unit:F')
-m=mmean(bias8,(0,1))
-atxt(-75,30,f'mean={m:.2f}')
-
-lev=[2,4,6,8,10,12,14,16,18]
-lev=np.arange(15)
-cf(lon,lat,rmse8.T,lev,cm='Accent',extend='both',title='RMSE for day8 \n',l='heat index',r='unit:F')
-cf(lon,lat,rmse8_fc.T,lev,cm='Accent',extend='both',title='RMSE for day8 \n',l='heat index',r='unit:F')
-
-
-
 def p_rmse(M,title):
     lev=np.arange(1,15)
-    cf(lon,lat,M.T,lev,cm='YlGnBu',extend='both',title=title,l='heat index',r='unit:F')
+    cf(lon,lat,M.T,lev,cm='YlGnBu',extend='both',title=title,l='HI>80',r='unit:F')
     m=mmean(M,(0,1))
     atxt(-75,30,f'mean={m:.2f}')
-
-p_rmse(rmse8,'RMSE for day8 \n')
-p_rmse(rmse8_fc,'RMSE after BC for day8 \n')
-
 
 for i in range(7): #day8-14  start from 0
 
@@ -125,15 +93,51 @@ for i in range(7): #day8-14  start from 0
     m=mmean(bias_day,(0,1))
     atxt(-75,30,f'mean={m:.2f}')
 
-    def p_rmse(M,title):
-        lev=np.arange(1,15)
-        cf(lon,lat,M.T,lev,cm='YlGnBu',extend='both',title=title,l='heat index',r='unit:F')
-        m=mmean(M,(0,1))
-        atxt(-75,30,f'mean={m:.2f}')
-
     p_rmse(rmse_day,f'RMSE for day{i+7+1} \n')
     p_rmse(rmse_fc,f'RMSE after BC for day{i+7+1} \n')
 
+
+
+# for HI>80
+tfn=tf+7 #day8
+
+select=np.in1d(to,tfn) # to get same issue_date at observation with forecast
+o8=o[:,:,select]
+
+
+o8_80=o8>80
+o8[~o8_80]=np.nan
+f8=f[:,:,0,:]
+f8[~o8_80]=np.nan
+
+
+
+bias8=bias(f8,o8,axis=2)
+rmse8=rmse(f8,o8,axis=2)
+
+fc=f8-bias8[:,:,np.newaxis]
+
+rmse8_fc=rmse(fc,o8,axis=2)
+
+
+lev=[-5,-4,-3,-2,-1,1,2,3,4,5]
+
+cf(lon,lat,bias8.T,lev,extend='both',title='bias for day8  \n',l='HI>80',r='unit:F')
+m=mmean(bias8,(0,1))
+atxt(-75,30,f'mean={m:.2f}')
+
+
+
+lev=np.arange(15)
+cf(lon,lat,rmse8.T,lev,cm='YlGnBu',extend='both',title='RMSE for day8 \n',l='HI>80',r='unit:F')
+cf(lon,lat,rmse8_fc.T,lev,cm='YlGnBu',extend='both',title='RMSE for day8 \n',l='HI>80',r='unit:F')
+
+
+
+
+
+p_rmse(rmse8,'RMSE for day8 \n')
+p_rmse(rmse8_fc,'RMSE after BC for day8 \n')
 
 
 
@@ -194,12 +198,51 @@ def date2num(yyyymmdd='20210101') -> int:
     return (end-start).days+367   # from 0000 jan 0
 
 
-def bias():
+
 
 
 
 def main(yyyymmdd):
     print(yyyymmdd)
+
+
+
+def read_hourp(yyyymmdd):
+    ''' read 0.25 hourly p analysis from Shaorong Wu
+
+    DSET  ^../%y4/%y4%m2/CONUS_GAUGE_PRCP_HLY_0.25deg_NG8000_ADJ.lnx.%y4%m2%d2
+*
+options   template
+*
+UNDEF  -999.0
+*
+TITLE  CONUS Hourly Gauge Precipitation Analysis adjusted against CPC daily
+*
+XDEF  260 LINEAR -129.875 0.25
+*
+YDEF  128 LINEAR  20.125  0.25
+*
+ZDEF 1 LEVELS  1
+*
+TDEF 999999 LINEAR 00Z1JAN1948 1hr
+*
+VARS 2
+prcp   1 00 precipitation in mm/hr
+samp   1 00 number of reporting gauges
+ENDVARS
+'''
+
+
+    p=f'/cpc/sate/XIE/BASE/DSI3240/ANA/{yyyymmdd[:4]}/{yyyymmdd[:6]}/CONUS_GAUGE_PRCP_HLY_0.25deg_NG8000_ADJ.lnx.{yyyymmdd}.gz'
+
+    from xu import rgz
+    D=rgz(p,(24,2,128,260))
+    Da=np.copy(D[:,0])
+    Da[Da<-900]=np.nan
+
+    return Da  #unit: mm/hr
+
+
 
 
 if __name__ == '__main__':
